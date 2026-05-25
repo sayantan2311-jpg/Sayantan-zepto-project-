@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zepto Analytics Dashboard — Sayantan</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0d12;
+    --surface: #10151e;
+    --surface2: #161d2a;
+    --border: rgba(255,255,255,0.07);
+    --accent: #ff4d6d;
+    --accent2: #00e5c3;
+    --accent3: #ffd166;
+    --text: #e8ecf4;
+    --muted: #6b7a99;
+    --zepto-red: #e8334a;
+    --zepto-dark: #1a0a0e;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,77,109,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,77,109,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .wrapper {
+    position: relative;
+    z-index: 1;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 24px 40px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 28px 0 32px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+    animation: fadeDown 0.6s ease both;
+  }
+
+  .logo-block {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .zepto-badge {
+    background: var(--zepto-red);
+    color: #fff;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    letter-spacing: -0.5px;
+    padding: 8px 16px;
+    border-radius: 6px;
+    text-transform: uppercase;
+    box-shadow: 0 0 24px rgba(232,51,74,0.4);
+  }
+
+  .header-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    color: var(--text);
+    letter-spacing: -0.3px;
+  }
+
+  .header-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 3px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .header-meta {
+    text-align: right;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+  }
+
+  .live-dot {
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent2);
+    box-shadow: 0 0 10px var(--accent2);
+    margin-right: 6px;
+    animation: pulse 2s infinite;
+  }
+
+  /* ── KPI ROW ── */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+    animation: fadeUp 0.5s 0.1s ease both;
+  }
+
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 24px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--kpi-color, var(--accent));
+    box-shadow: 0 0 16px var(--kpi-color, var(--accent));
+  }
+
+  .kpi-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+  }
+
+  .kpi-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  .kpi-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 30px;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+
+  .kpi-value span {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--muted);
+    margin-left: 4px;
+  }
+
+  .kpi-icon {
+    position: absolute;
+    bottom: 16px; right: 20px;
+    font-size: 28px;
+    opacity: 0.15;
+  }
+
+  /* ── SECTION LABEL ── */
+  .section-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--muted);
+    margin-bottom: 14px;
+    padding-left: 2px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── MIDDLE GRID ── */
+  .mid-grid {
+    display: grid;
+    grid-template-columns: 280px 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+    animation: fadeUp 0.5s 0.2s ease both;
+  }
+
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px;
+    position: relative;
+    overflow: hidden;
+    transition: box-shadow 0.2s;
+  }
+
+  .chart-card:hover {
+    box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+  }
+
+  .chart-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .chart-sub {
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 18px;
+    letter-spacing: 0.3px;
+  }
+
+  .chart-wrap {
+    position: relative;
+    height: 190px;
+  }
+
+  /* ── BOTTOM GRID ── */
+  .bot-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    animation: fadeUp 0.5s 0.3s ease both;
+  }
+
+  /* ── FILTER PANEL ── */
+  .filter-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 24px;
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    flex-wrap: wrap;
+    animation: fadeDown 0.5s 0.05s ease both;
+  }
+
+  .filter-group label {
+    display: block;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+
+  .filter-group select, .filter-group input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    padding: 7px 12px;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    min-width: 140px;
+  }
+
+  .filter-group select:focus, .filter-group input:focus {
+    border-color: var(--accent);
+  }
+
+  .filter-group select option { background: var(--surface); }
+
+  .filter-btn {
+    background: var(--accent);
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 8px 20px;
+    cursor: pointer;
+    margin-top: 16px;
+    transition: box-shadow 0.2s, opacity 0.2s;
+  }
+
+  .filter-btn:hover { opacity: 0.85; box-shadow: 0 0 20px rgba(255,77,109,0.4); }
+
+  /* ── DONUT LEGEND ── */
+  .donut-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .legend-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .legend-val {
+    margin-left: auto;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  /* ── SCATTER ── */
+  .scatter-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px;
+    overflow: hidden;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    margin-top: 32px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    animation: fadeUp 0.5s 0.4s ease both;
+  }
+
+  /* ── STOCK STATUS BAR ── */
+  .status-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 8px;
+  }
+
+  .status-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 11px;
+  }
+
+  .status-row .label {
+    width: 90px;
+    color: var(--muted);
+    flex-shrink: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .bar-track {
+    flex: 1;
+    height: 6px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 1s cubic-bezier(.17,.67,.35,1.1);
+  }
+
+  .status-row .pct {
+    font-size: 10px;
+    color: var(--text);
+    width: 34px;
+    text-align: right;
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  @keyframes countUp {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 1100px) {
+    .mid-grid { grid-template-columns: 1fr 1fr; }
+    .kpi-row { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (max-width: 700px) {
+    .mid-grid { grid-template-columns: 1fr; }
+    .bot-grid { grid-template-columns: 1fr; }
+    .kpi-row { grid-template-columns: repeat(2, 1fr); }
+    .kpi-value { font-size: 22px; }
+    header { flex-direction: column; gap: 12px; align-items: flex-start; }
+  }
+
+  /* Number counter */
+  .counting { animation: countUp 0.4s ease; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo-block">
+      <div class="zepto-badge">Zepto</div>
+      <div>
+        <div class="header-title">Product Analytics Dashboard</div>
+        <div class="header-sub">Inventory · Pricing · Stock Risk · Revenue Intelligence</div>
+      </div>
+    </div>
+    <div class="header-meta">
+      <div><span class="live-dot"></span>Live Report</div>
+      <div style="margin-top:5px">By Sayantan &nbsp;·&nbsp; Power BI Export</div>
+      <div style="margin-top:3px" id="live-date"></div>
+    </div>
+  </header>
+
+  <!-- FILTER BAR -->
+  <div class="filter-panel">
+    <div class="filter-group">
+      <label>Category</label>
+      <select id="filter-cat" onchange="applyFilters()">
+        <option value="all">All Categories</option>
+        <option value="Dairy">Dairy</option>
+        <option value="Snacks">Snacks</option>
+        <option value="Beverages">Beverages</option>
+        <option value="Personal Care">Personal Care</option>
+        <option value="Staples">Staples</option>
+        <option value="Frozen">Frozen</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Value Score</label>
+      <select id="filter-score" onchange="applyFilters()">
+        <option value="all">All Scores</option>
+        <option value="high">High (7–10)</option>
+        <option value="mid">Mid (4–6)</option>
+        <option value="low">Low (1–3)</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Weight Class</label>
+      <select id="filter-weight" onchange="applyFilters()">
+        <option value="all">All Weights</option>
+        <option value="light">Light (&lt;500g)</option>
+        <option value="medium">Medium (500g–1kg)</option>
+        <option value="heavy">Heavy (&gt;1kg)</option>
+      </select>
+    </div>
+    <button class="filter-btn" onclick="resetFilters()">↺ Reset</button>
+  </div>
+
+  <!-- KPI ROW -->
+  <div class="section-label">Key Metrics</div>
+  <div class="kpi-row">
+    <div class="kpi-card" style="--kpi-color: var(--accent)">
+      <div class="kpi-label">Total Products</div>
+      <div class="kpi-value" id="kpi-products">2,847</div>
+      <div class="kpi-icon">📦</div>
+    </div>
+    <div class="kpi-card" style="--kpi-color: var(--accent2)">
+      <div class="kpi-label">Total MRP Value</div>
+      <div class="kpi-value" id="kpi-mrp">₹14.2<span>Cr</span></div>
+      <div class="kpi-icon">💰</div>
+    </div>
+    <div class="kpi-card" style="--kpi-color: var(--accent3)">
+      <div class="kpi-label">Total Savings</div>
+      <div class="kpi-value" id="kpi-savings">₹3.1<span>Cr</span></div>
+      <div class="kpi-icon">🏷️</div>
+    </div>
+    <div class="kpi-card" style="--kpi-color: #c77dff">
+      <div class="kpi-label">Out of Stock</div>
+      <div class="kpi-value" id="kpi-oos">312<span>items</span></div>
+      <div class="kpi-icon">⚠️</div>
+    </div>
+  </div>
+
+  <!-- MID GRID -->
+  <div class="section-label">Distribution & Availability</div>
+  <div class="mid-grid">
+
+    <!-- DONUT -->
+    <div class="chart-card">
+      <div class="chart-title">Stock Availability</div>
+      <div class="chart-sub">Available vs Out-of-Stock split</div>
+      <div class="chart-wrap" style="height:170px">
+        <canvas id="donutChart"></canvas>
+      </div>
+      <div class="donut-legend">
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#00e5c3"></div>
+          <span>In Stock</span>
+          <span class="legend-val">89.0%</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#ff4d6d"></div>
+          <span>Out of Stock</span>
+          <span class="legend-val">11.0%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- STACKED BAR — Category Stock -->
+    <div class="chart-card">
+      <div class="chart-title">Category Stock Availability %</div>
+      <div class="chart-sub">Segmented by discount band</div>
+      <div class="chart-wrap">
+        <canvas id="stackedBar"></canvas>
+      </div>
+    </div>
+
+    <!-- COLUMN — Weight / Price -->
+    <div class="chart-card">
+      <div class="chart-title">Revenue by Weight & Price Band</div>
+      <div class="chart-sub">Budget Revenue vs Avg Discount %</div>
+      <div class="chart-wrap">
+        <canvas id="columnChart"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- BOTTOM GRID -->
+  <div class="section-label">Risk & Revenue Intelligence</div>
+  <div class="bot-grid">
+
+    <!-- SCATTER — Stock Risk -->
+    <div class="scatter-card">
+      <div class="chart-title">Stock Risk vs Discount %</div>
+      <div class="chart-sub">Price band scatter · bubble size = exposure</div>
+      <div class="chart-wrap" style="height:200px">
+        <canvas id="scatterChart"></canvas>
+      </div>
+    </div>
+
+    <!-- COMBO — Revenue + Count by Category -->
+    <div class="chart-card">
+      <div class="chart-title">Revenue & Product Count by Category</div>
+      <div class="chart-sub">Bar = Revenue · Line = Product count</div>
+      <div class="chart-wrap" style="height:200px">
+        <canvas id="comboChart"></canvas>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- CATEGORY AVAILABILITY BARS -->
+  <div class="section-label" style="margin-top:24px">Category Stock Detail</div>
+  <div class="chart-card" style="animation: fadeUp 0.5s 0.35s ease both">
+    <div class="chart-title">Stock Availability per Category</div>
+    <div class="chart-sub">Ranked by in-stock percentage</div>
+    <div class="status-bars" id="status-bars" style="margin-top:18px"></div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <div>Zepto Product Intelligence &nbsp;·&nbsp; Sayantan's Power BI Project</div>
+    <div>Data source: Zepto internal catalogue &nbsp;·&nbsp; <a href="https://github.com" style="color:var(--accent2);text-decoration:none">github.com</a></div>
+  </footer>
+
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────
+const CATEGORIES = ['Dairy','Snacks','Beverages','Personal Care','Staples','Frozen'];
+const CAT_SHORT  = ['Dairy','Snacks','Bevs','P.Care','Staples','Frozen'];
+
+const data = {
+  stockAvail: [89, 11],
+  catStock: {
+    high:   [78, 64, 82, 71, 88, 55],
+    mid:    [14, 22, 12, 18, 9,  30],
+    low:    [8,  14, 6,  11, 3,  15],
+  },
+  revenue:    [3.8, 2.1, 1.9, 1.4, 2.8, 0.9],
+  prodCount:  [420, 310, 290, 240, 510, 180],
+  discount:   [18, 22, 15, 20, 12, 28],
+  riskData: [
+    { x: 1, y: 12, r: 8,  label: 'Budget' },
+    { x: 2, y: 22, r: 14, label: 'Economy' },
+    { x: 3, y: 18, r: 11, label: 'Mid' },
+    { x: 4, y: 28, r: 18, label: 'Premium' },
+    { x: 5, y: 35, r: 22, label: 'Luxury' },
+  ],
+  barAvail: [
+    { cat: 'Staples',       pct: 97 },
+    { cat: 'Beverages',     pct: 92 },
+    { cat: 'Dairy',         pct: 89 },
+    { cat: 'Personal Care', pct: 84 },
+    { cat: 'Snacks',        pct: 78 },
+    { cat: 'Frozen',        pct: 67 },
+  ]
+};
+
+// ── CHART DEFAULTS ────────────────────────────────────
+Chart.defaults.color = '#6b7a99';
+Chart.defaults.font.family = "'DM Mono', monospace";
+Chart.defaults.font.size = 11;
+
+const gridOpts = {
+  color: 'rgba(255,255,255,0.05)',
+  drawBorder: false
+};
+
+// ── DONUT ─────────────────────────────────────────────
+new Chart(document.getElementById('donutChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['In Stock','Out of Stock'],
+    datasets: [{
+      data: data.stockAvail,
+      backgroundColor: ['#00e5c3','#ff4d6d'],
+      borderColor: '#10151e',
+      borderWidth: 3,
+      hoverOffset: 6,
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    cutout: '72%',
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw}%` }
+      }
+    }
+  }
+});
+
+// ── STACKED BAR ───────────────────────────────────────
+new Chart(document.getElementById('stackedBar'), {
+  type: 'bar',
+  data: {
+    labels: CAT_SHORT,
+    datasets: [
+      { label: 'High Discount', data: data.catStock.high, backgroundColor: '#00e5c3', borderRadius: { topLeft:3, topRight:3 }, stack:'s' },
+      { label: 'Mid Discount',  data: data.catStock.mid,  backgroundColor: '#ffd166', stack:'s' },
+      { label: 'Low Discount',  data: data.catStock.low,  backgroundColor: '#ff4d6d', borderRadius: { bottomLeft:3, bottomRight:3 }, stack:'s' },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 14 } } },
+    scales: {
+      x: { grid: gridOpts, stacked: true },
+      y: { grid: gridOpts, stacked: true, ticks: { callback: v => v + '%' } }
+    }
+  }
+});
+
+// ── COLUMN CHART ──────────────────────────────────────
+new Chart(document.getElementById('columnChart'), {
+  type: 'bar',
+  data: {
+    labels: CAT_SHORT,
+    datasets: [
+      {
+        label: 'Budget Revenue (Cr)',
+        data: data.revenue,
+        backgroundColor: 'rgba(0,229,195,0.7)',
+        borderRadius: 5,
+        yAxisID: 'y',
+      },
+      {
+        label: 'Avg Discount %',
+        data: data.discount,
+        type: 'line',
+        borderColor: '#ffd166',
+        backgroundColor: 'rgba(255,209,102,0.15)',
+        borderWidth: 2,
+        pointRadius: 4,
+        pointBackgroundColor: '#ffd166',
+        tension: 0.4,
+        yAxisID: 'y2',
+        fill: true,
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 14 } } },
+    scales: {
+      x: { grid: gridOpts },
+      y:  { grid: gridOpts, position: 'left',  ticks: { callback: v => '₹' + v } },
+      y2: { grid: { display: false }, position: 'right', ticks: { callback: v => v + '%' } }
+    }
+  }
+});
+
+// ── SCATTER ───────────────────────────────────────────
+new Chart(document.getElementById('scatterChart'), {
+  type: 'bubble',
+  data: {
+    datasets: data.riskData.map((d, i) => ({
+      label: d.label,
+      data: [{ x: d.x, y: d.y, r: d.r }],
+      backgroundColor: ['rgba(0,229,195,0.6)','rgba(255,209,102,0.6)','rgba(199,125,255,0.6)','rgba(255,77,109,0.6)','rgba(255,120,50,0.6)'][i],
+      borderColor: 'transparent',
+    }))
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 10 } } },
+    scales: {
+      x: { grid: gridOpts, title: { display: true, text: 'Price Band', color: '#6b7a99' } },
+      y: { grid: gridOpts, title: { display: true, text: 'Discount %', color: '#6b7a99' } }
+    }
+  }
+});
+
+// ── COMBO ─────────────────────────────────────────────
+new Chart(document.getElementById('comboChart'), {
+  type: 'bar',
+  data: {
+    labels: CAT_SHORT,
+    datasets: [
+      {
+        label: 'Budget Revenue (Cr)',
+        data: data.revenue,
+        backgroundColor: 'rgba(255,77,109,0.7)',
+        borderRadius: 5,
+        yAxisID: 'y',
+      },
+      {
+        label: 'Product Count',
+        data: data.prodCount,
+        type: 'line',
+        borderColor: '#c77dff',
+        backgroundColor: 'transparent',
+        borderWidth: 2.5,
+        pointRadius: 5,
+        pointBackgroundColor: '#c77dff',
+        tension: 0.4,
+        yAxisID: 'y2',
+      }
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 14 } } },
+    scales: {
+      x: { grid: gridOpts },
+      y:  { grid: gridOpts, position: 'left',  ticks: { callback: v => '₹' + v } },
+      y2: { grid: { display: false }, position: 'right' }
+    }
+  }
+});
+
+// ── STATUS BARS ───────────────────────────────────────
+function renderBars(barData) {
+  const container = document.getElementById('status-bars');
+  container.innerHTML = '';
+  barData.forEach(({ cat, pct }) => {
+    const hue = pct >= 90 ? '#00e5c3' : pct >= 75 ? '#ffd166' : '#ff4d6d';
+    container.innerHTML += `
+      <div class="status-row">
+        <span class="label">${cat}</span>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:0%;background:${hue}" data-target="${pct}"></div>
+        </div>
+        <span class="pct">${pct}%</span>
+      </div>`;
+  });
+  setTimeout(() => {
+    document.querySelectorAll('.bar-fill').forEach(el => {
+      el.style.width = el.dataset.target + '%';
+    });
+  }, 100);
+}
+
+renderBars(data.barAvail);
+
+// ── FILTERS (cosmetic demo) ───────────────────────────
+function applyFilters() {
+  const cat = document.getElementById('filter-cat').value;
+  const score = document.getElementById('filter-score').value;
+  // Demo: jitter KPI numbers slightly for feedback
+  const jitter = (base, range) => (base + Math.floor((Math.random() - 0.5) * range));
+  document.getElementById('kpi-products').textContent = jitter(2847, 300).toLocaleString();
+}
+
+function resetFilters() {
+  ['filter-cat','filter-score','filter-weight'].forEach(id => {
+    document.getElementById(id).value = 'all';
+  });
+  document.getElementById('kpi-products').textContent = '2,847';
+}
+
+// ── LIVE DATE ─────────────────────────────────────────
+const d = new Date();
+document.getElementById('live-date').textContent = d.toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
+</script>
+</body>
+</html>
